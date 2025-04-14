@@ -1,0 +1,23 @@
+server.port: 8080
+
+spring:
+  ai:
+    openai:
+      api-key: ${GEMINI_API_KEY}
+      chat:
+        options:
+          model: gemini-2.0-flash
+        base-url: https://generativelanguage.googleapis.com
+        completions-path: /v1beta/openai/chat/completions
+  application:
+    name: gemini-api
+
+  springdoc:
+    api-docs:
+      path: /api-docs
+    swagger-ui:
+      path: /swagger-ui.html
+      operations-sorter: method
+      tags-sorter: alpha
+    packages-to-scan: com.carloso.ai
+    paths-to-match: /**

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini AI Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f9f9f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .brand-header {
+            padding: 1rem 0;
+            background-color: #ffffff;
+            border-bottom: 1px solid #e6e6e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        .messages-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 2rem 1rem;
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            max-width: 90%;
+        }
+
+        .user-message {
+            margin-left: auto;
+            background-color: #e9f5ff;
+            border-radius: 1rem 1rem 0 1rem;
+            padding: 1rem;
+        }
+
+        .assistant-message {
+            background-color: #ffffff;
+            border-radius: 1rem 1rem 1rem 0;
+            padding: 1rem;
+            border: 1px solid #e6e6e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        .input-container {
+            padding: 1.5rem 1rem;
+            background-color: #ffffff;
+            border-top: 1px solid #e6e6e6;
+        }
+
+        .form-control {
+            border-radius: 1.5rem;
+            padding-right: 4rem;
+            min-height: 3rem;
+        }
+
+        .submit-btn {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 50%;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-indicator {
+            display: none;
+        }
+
+        .loading-indicator.active {
+            display: flex;
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 0.5rem;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            margin: 0 2px;
+            background-color: #6c757d;
+            border-radius: 50%;
+            animation: typing 1.4s infinite both;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-6px);
+            }
+        }
+
+        pre {
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        code {
+            color: #e83e8c;
+        }
+
+        .model-info {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .model-selector {
+            margin-left: 1rem;
+        }
+
+        .settings-container {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<header class="brand-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="h3 mb-0">Gemini AI Assistant</h1>
+            <div class="settings-container">
+                <select id="modelSelector" class="form-select form-select-sm model-selector">
+                    <option value="">Loading models...</option>
+                </select>
+                <div class="model-info ms-2">Powered by Google Gemini</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="chat-container">
+    <div class="container messages-container" id="messages">
+        <div class="message assistant-message">
+            <p>Hello! I'm your Gemini AI assistant. How can I help you today?</p>
+        </div>
+        <!-- Messages will be added here dynamically -->
+    </div>
+
+    <div class="container input-container">
+        <form id="chatForm" class="position-relative">
+            <input
+                    type="text"
+                    class="form-control"
+                    id="promptInput"
+                    placeholder="Type your message here..."
+                    autocomplete="off"
+                    required
+            >
+            <button type="submit" class="btn btn-primary submit-btn">
+                <i class="bi bi-send"></i>
+            </button>
+        </form>
+        <div class="loading-indicator mt-3" id="loadingIndicator">
+            <div class="typing-indicator">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </div>
+            <span class="ms-2">Gemini is thinking...</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatForm = document.getElementById('chatForm');
+        const promptInput = document.getElementById('promptInput');
+        const messagesContainer = document.getElementById('messages');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const modelSelector = document.getElementById('modelSelector');
+        let selectedModel = '';
+
+        function setDefaultModel(models) {
+            const defaultModelId = "models/gemini-2.0-flash";
+            const defaultModel = models.find(model => model.id === defaultModelId);
+
+            if (defaultModel) {
+                selectedModel = defaultModel.id;
+                modelSelector.value = defaultModel.id;
+            } else {
+                if (models.length > 0) {
+                    selectedModel = models[0].id;
+                    modelSelector.value = models[0].id;
+                }
+            }
+        }
+
+        // Fetch available models from the server
+        async function loadModels() {
+            try {
+                const response = await fetch('/models');
+                const models = await response.json();
+
+                // Clear loading option
+                modelSelector.innerHTML = '';
+
+                // Add models to selector
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+
+                    // Extract model name from the ID (remove 'models/' prefix and format it)
+                    const modelName = model.id.replace('models/', '');
+                    option.textContent = modelName;
+
+                    modelSelector.appendChild(option);
+                });
+
+                // Set the first model as selected by default
+                if (models.length > 0) {
+                    selectedModel = models[0].id;
+                    modelSelector.value = selectedModel;
+                }
+
+                setDefaultModel(models);
+            } catch (error) {
+                console.error('Error loading models:', error);
+                modelSelector.innerHTML = '<option value="">Error loading models</option>';
+            }
+        }
+
+        // Load models when page loads
+        loadModels();
+
+        // Update selected model when changed
+        modelSelector.addEventListener('change', function() {
+            selectedModel = this.value;
+        });
+
+        // Handle form submission
+        chatForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            // Add user message to the chat
+            addMessage(prompt, 'user');
+
+            // Clear input
+            promptInput.value = '';
+
+            // Show loading indicator
+            loadingIndicator.classList.add('active');
+
+            try {
+                // Send request to the server with the selected model
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        model: selectedModel
+                    })
+                });
+
+                const data = await response.text();
+
+                // Add assistant's response to the chat
+                addMessage(data, 'assistant');
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Sorry, I encountered an error processing your request.', 'assistant');
+            } finally {
+                // Hide loading indicator
+                loadingIndicator.classList.remove('active');
+            }
+        });
+
+        // Function to add a message to the chat
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'assistant-message');
+
+            // Parse markdown for assistant messages
+            if (sender === 'assistant') {
+                messageDiv.innerHTML = marked.parse(content);
+            } else {
+                messageDiv.textContent = content;
+            }
+
+            messagesContainer.appendChild(messageDiv);
+
+            // Scroll to the bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    });
+</script>
+</body>
+</html>
