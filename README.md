@@ -4,11 +4,38 @@ A simple Spring Boot application that demonstrates how to integrate with Google'
 
 ## Overview
 
-This project provides a straightforward implementation of a web application that interacts with Google's Gemini AI models. It features:
+This project provides a straightforward implementation of a web application that interacts with Google's Gemini AI models with memory between interactions. It features:
 
 - A clean, intuitive web interface built with Thymeleaf
 - A RESTful API for programmatic access to Gemini's capabilities
-- Simple configuration with minimal setup requirements
+- Simple configuration with minimal setup requirements using Spring AI
+
+## Maintaining Chat Context with Memory Advisors
+
+
+To preserve context across interactions in the chat client, a `MessageChatMemoryAdvisor` is implemented during the `ChatClient` object's creation:
+```
+public GeminiService(ChatClient.Builder chatClientBuilder, RestClient.Builder restClientBuilder) {
+     this.chatClient = chatClientBuilder
+             .defaultOptions(ChatOptions
+                     .builder()
+                     .build())
+             .defaultAdvisors(new MessageChatMemoryAdvisor(new InMemoryChatMemory()))
+             .build();
+    // ...
+}
+```
+Spring AI offers various advisors to enhance AI-driven interactions in your Spring applications. For comprehensive information about advisors, refer to the [official Spring AI documentation](https://docs.spring.io/spring-ai/reference/api/advisors.html).
+
+### Chat Memory Advisors
+The following chat memory advisors are particularly relevant:
+- **MessageChatMemoryAdvisor**
+  Retrieves memory and adds it as a collection of messages to the prompt, preserving the conversation's structure. Note that not all AI models support this approach.
+- **PromptChatMemoryAdvisor**
+  Retrieves memory and incorporates it into the prompt's system text.
+- **VectorStoreChatMemoryAdvisor**
+  Retrieves memory from a VectorStore and integrates it into the prompt's system text. This advisor is particularly useful for efficiently searching and retrieving relevant information from large datasets.
+
 
 ## Features
 
